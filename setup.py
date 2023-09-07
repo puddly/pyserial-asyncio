@@ -49,7 +49,7 @@ version = find_version('serial_asyncio_fast', '__init__.py')
 
 
 setup(
-    name="pyserial-asyncio",
+    name="pyserial-asyncio-fast",
     description="Python Serial Port Extension - Asynchronous I/O support",
     version=version,
     author="pySerial-team",
