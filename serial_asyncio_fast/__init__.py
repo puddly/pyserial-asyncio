@@ -28,7 +28,7 @@ try:
 except ImportError:
     termios = None
 
-__version__ = "0.10"
+__version__ = "0.11"
 
 
 class SerialTransport(asyncio.Transport):
