@@ -31,15 +31,6 @@ except ImportError:
 __version__ = "0.13"
 
 
-# Prevent tasks from being garbage collected.
-_BACKGROUND_TASKS: Set[asyncio.Task] = set()
-
-def _create_background_task(coro: Coroutine) -> None:
-    """Create a background task that will not be garbage collected."""
-    task = asyncio.create_task(coro)
-    _BACKGROUND_TASKS.add(task)
-    task.add_done_callback(_BACKGROUND_TASKS.discard)
-
 class SerialTransport(asyncio.Transport):
     """An asyncio transport model of a serial communication channel.
 
@@ -438,7 +429,7 @@ class SerialTransport(asyncio.Transport):
         self._remove_reader()
         if self._flushed():
             self._remove_writer()
-            _create_background_task(self._call_connection_lost(exc))
+            self._call_connection_lost(exc)
 
     def _abort(self, exc: Optional[BaseException]) -> None:
         """Close the transport immediately.
@@ -452,9 +443,9 @@ class SerialTransport(asyncio.Transport):
         self._closing = True
         self._remove_reader()
         self._remove_writer()  # Pending buffered data will not be written
-        _create_background_task(self._call_connection_lost(exc))
+        self._call_connection_lost(exc)
 
-    async def _call_connection_lost(self, exc: Optional[Exception]) -> None:
+    def _call_connection_lost(self, exc: Optional[Exception]) -> None:
         """Close the connection.
 
         Informs the protocol through connection_lost() and clears
@@ -463,18 +454,12 @@ class SerialTransport(asyncio.Transport):
         assert self._closing
         assert not self._has_writer
         assert not self._has_reader
-        try:
-            await self._loop.run_in_executor(None, self._serial.flush)
-        except serial.SerialException if os.name == "nt" else termios.error:
-            # ignore serial errors which may happen if the serial device was
-            # hot-unplugged.
-            pass
 
         try:
             self._protocol.connection_lost(exc)
         finally:
             self._write_buffer.clear()
-            await self._loop.run_in_executor(None, self._serial.close)
+            self._serial.close()
             self._serial = None
             self._protocol = None
             self._loop = None
