@@ -574,6 +574,8 @@ async def open_serial_connection(
     *,
     loop: Optional[asyncio.AbstractEventLoop] = None,
     limit: Optional[int] = None,
+    *,
+    exclusive: bool = True,
     **kwargs: Any
 ) -> Tuple[asyncio.StreamReader, asyncio.StreamWriter]:
     """A wrapper for create_serial_connection() returning a (reader,
@@ -596,7 +598,7 @@ async def open_serial_connection(
     reader = asyncio.StreamReader(limit=limit, loop=loop)
     protocol = asyncio.StreamReaderProtocol(reader, loop=loop)
     transport, _ = await create_serial_connection(
-        loop=loop, protocol_factory=lambda: protocol, **kwargs
+        loop=loop, protocol_factory=lambda: protocol, exclusive=exclusive, **kwargs
     )
     writer = asyncio.StreamWriter(transport, protocol, reader, loop)
     return reader, writer
